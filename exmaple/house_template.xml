@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<websites>
+
+
+	<website domain="gz.fang.anjuke.com" paser-engine="parse">
+		<!--  -->
+		<url-pattern>http://gz.fang.anjuke.com/loupan/s\?p=.*</url-pattern>
+		<!-- indicate how to retrieve data from page -->
+		<!-- indicate how to retrieve outlink from page -->
+		<outlinks>
+			<entity occur="optional" trace="true" normalize="none" update-interval="-1">
+				<parse>
+					<css-expression>.items-name</css-expression>
+				</parse>
+			</entity>
+			<entity occur="optional" trace="true" normalize="none" update-interval="-1">
+				<parse>
+					<css-expression>.pagination>a</css-expression>
+				</parse>
+			</entity>
+		</outlinks>
+	</website>
+
+	<website domain="gz.fang.anjuke.com" paser-engine="parse">
+		<!--  -->
+		<url-pattern>http://gz.fang.anjuke.com/loupan/\d+</url-pattern>
+		<!-- indicate how to retrieve data from page -->
+		<!-- indicate how to retrieve outlink from page -->
+		<data-object>
+			<!-- occur value must in {"mandatory", "optional"}, default is "optional" -->
+			<!-- data-type value must in {"string", "int", "float", "boolean"}, default
+				is "string"-->
+			<field name="楼盘名称" data-type="string" multi-value="false" occur="mandatory"
+				description="小区名称">
+				<!-- list of xpath-expression -->
+				<parse>
+					<xpath-expression>.//*[@id='j-triggerlayer']</xpath-expression>
+				</parse>
+			</field>
+			
+			<field name="价格" multi-value="false" occur="optional"
+				description="价格,单位:元/m2">
+				<parse>
+					<css-expression>.price>p</css-expression>
+					<regular-match>(\d+)元</regular-match>
+				</parse>
+			</field>
+			<field name="户型" multi-value="false" description="户型" occur="mandatory">
+				<!-- list of template -->
+				<parse>
+					<css-expression>.house-item</css-expression>
+					<script-name>replace_symbol</script-name>
+				</parse>
+			</field>
+			<field name="地址" multi-value="false" description="地址" occur="mandatory">
+				<!-- list of template -->
+				<parse>
+					<css-expression>.lpAddr-text</css-expression>
+					<script-name>replace_symbol</script-name>
+				</parse>
+			</field>
+			<field name="电话" multi-value="false" description="电话" occur="mandatory">
+				<!-- list of template -->
+				<parse>
+					<css-expression>.tel.clearfix</css-expression>
+					<script-name>replace_symbol</script-name>
+				</parse>
+			</field>
+			<field name="开盘日期" multi-value="false" description="开盘日期">
+				<!-- list of template -->
+				<parse>
+					<xpath-expression>.//*[@id='container']/div[1]/div[2]/div[4]/ul[1]/li[1]</xpath-expression>
+					<regular-match>最新开盘(.*?)</regular-match>
+				</parse>
+			</field>
+			<field name="交房日期" multi-value="false" description="交房日期">
+				<!-- list of template -->
+				<parse>
+					<xpath-expression>.//*[@id='container']/div[1]/div[2]/div[4]/ul[2]/li[1]/span</xpath-expression>
+					<regular-match>最新开盘(.*?)</regular-match>
+				</parse>
+			</field>
+		</data-object>
+	</website>
+</websites>
