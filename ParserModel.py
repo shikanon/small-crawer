@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding:utf8
 # __author__ = "shikanon <shikanon@live.com>"
-#__version__ = "0.2.2"
+#__version__ = "0.2.3"
 
 import logging
 import re
@@ -82,7 +82,10 @@ class XMLParser(Parser):
         # 返回值可能为空{}，也可以只有一个如{"parsered":{key2 :[value1,...],key2:[value2,...],...}}
         self.url = url
         self.content = content
-
+        try:
+            self.html_etree = etree.parse(content, etree.HTMLParser())
+        except:
+            self.html_etree = fromstring(content)
         if self.parsed_files is None:
             raise AttributeError(
                 "please use load_parsed_files function load parsed_file")
@@ -104,6 +107,10 @@ class XMLParser(Parser):
         # 初始化
         self.url = url
         self.content = content
+        try:
+            self.html_etree = etree.parse(content, etree.HTMLParser())
+        except:
+            self.html_etree = fromstring(content)
         if self.parsed_files is None:
             raise AttributeError(
                 "please use load_parsed_files function load parsed_file")
@@ -121,30 +128,22 @@ class XMLParser(Parser):
                         md5(parsed_file.encode("utf8")).hexdigest()] = True
         return test_result
 
-    def xpath_parser(self, expression, content):
+    def xpath_parser(self, expression, html_etree):
         '''
         xpath解析方法
         '''
         try:
-            html = etree.parse(response, etree.HTMLParser())
-        except:
-            html = fromstring(content)
-        try:
-            express_result = html.xpath(expression)
+            express_result = html_etree.xpath(expression)
         except:
             logging.error(u"xml解析文件存在错误!xpath表达式存在错误.")
             raise AttributeError("xml_file is Error! xpath parser is incorroct,\
              please input valid xpath parser.")
         return express_result
 
-    def css_parser(self, expression, content):
+    def css_parser(self, expression, html_etree):
         '''css解析方法
         Return:为一个标签数组'''
-        try:
-            html = etree.parse(content, etree.HTMLParser())
-        except:
-            html = fromstring(content)
-        query_tree = PyQuery(html)
+        query_tree = PyQuery(html_etree)
         return query_tree(expression)
 
     def str_parser(self, str_value, expression_method):
@@ -279,23 +278,23 @@ class XMLParser(Parser):
                     is_match = False
         return is_match
 
-    def express_function(self, content, expression_method):
+    def express_function(self, html_etree, expression_method):
         '''
         根据expression_method方法进行循环解析
         '''
         if expression_method["xpath-expression"] is not None:
             values = self.xpath_parser(
-                expression_method["xpath-expression"].string, content)
+                expression_method["xpath-expression"].string, html_etree)
         elif expression_method["css-expression"] is not None:
             values = self.css_parser(
-                expression_method["css-expression"].string, content)
+                expression_method["css-expression"].string, html_etree)
         elif "text-extraction" in expression_method:
             if expression_method["text-extraction"]:
                 pass
             else:
-                values = content
+                values = self.content
         else:
-            values = content
+            values = self.content
         if isinstance(values, list):
             result_values = []
             for value in values:
@@ -364,7 +363,7 @@ class XMLParser(Parser):
             express["regular-match"] = xpath.find("regular-match")
             express["script-name"] = xpath.find("script-name")
             express["script"] = xpath.find("script")
-            values = self.express_function(self.content, express)
+            values = self.express_function(self.html_etree, express)
             if len(values) != 0:
                 if values[0]:
                     break
@@ -418,7 +417,7 @@ class XMLParser(Parser):
             express["regular-match"] = xpath.find("regular-match")
             express["script-name"] = xpath.find("script-name")
             express["script"] = xpath.find("script")
-            urls = self.express_function(self.content, express)
+            urls = self.express_function(self.html_etree, express)
             if len(urls) != 0:
                 if urls[0]:
                     break

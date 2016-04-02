@@ -68,6 +68,7 @@ class small_crawler(object):
         finish_url = set()
         if headers is None:
             headers = self.get_header()
+        t0 = time.clock()
         while True:
             rs = (grequests.get(url, headers=headers, timeout=1)for url in urls)
             response_list = grequests.imap(rs, exception_handler=self.exception_url_handler)
@@ -77,8 +78,8 @@ class small_crawler(object):
                 t1 = time.clock()
                 urls = urls + self.parse_from_request(r)
                 finish_url.add(r.url)
-                print("爬虫时间：%f"%(time.clock()-t1))
             urls = [url for url in urls if url not in finish_url]
+            print("预计平均每分钟 %f 个页面"%(60*len(finish_url)/(time.clock()-t0)))
             print("next!")
             if len(urls) == 0:
                 break
