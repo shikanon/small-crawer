@@ -27,6 +27,7 @@ class small_crawler(object):
         else:
             self.start_urls = [start_url]
         self.save_data_path = save_path
+        self.save_url_path = "".join(save_path.split(".")[:-1]) + ".urls"
         #load Template from ParserModel
         self.parser = ParserModel.XMLParser()
         with open(model_filename, "r", encoding="utf8") as f:
@@ -48,7 +49,20 @@ class small_crawler(object):
     def exception_url_handler(self, request, exception):
         logging.warn(str(request.url) + "\t"*3 + "is failed!")
 
+    def load_url(self):
+        if os.path.exists(self.save_url_path):
+            with open(self.save_url_path, "r") as f:
+                url_dict = json.load(f)
+            return url_dict["undo_urls"], url_dict["finish_urls"]
+        else:
+            return list(),list()
+
+    def save_url(self, undo_urls, finish_urls):
+        with open(self.save_url_path, "w") as f:
+            json.dump({"undo_urls":list(undo_urls), "finish_urls":list(finish_urls)}, f)
+
     def parse_from_request(self, request):
+        '''paser the requests from Template and save the data'''
         urls = []
         self.parser.parsering(request.url, request.text)
         if "outlink" in self.parser.result.keys():
@@ -60,29 +74,37 @@ class small_crawler(object):
         result = {"url": request.url, "data": data}
         with open(self.save_data_path, "a", encoding="utf8") as f:
             print(result, file=f)
+        with open(self.save_data_path, "a", encoding="utf8") as f:
+            print(result["url"], file=f)
         return urls
 
     def small_crawler(self, headers=None, cookies=None):
         '''There is a small spider class, you only few lines can creat a crawler'''
-        urls = self.start_urls
-        finish_url = set()
+        
+        undo_urls, finish_urls = self.load_url()
+        urls = set(undo_urls + self.start_urls)
+        finish_urls = set(finish_urls)
         if headers is None:
             headers = self.get_header()
         t0 = time.clock()
-        while True:
-            rs = (grequests.get(url, headers=headers, timeout=1)for url in urls)
-            response_list = grequests.imap(rs, exception_handler=self.exception_url_handler)
-            for r in response_list:
-                if r is None:
-                    continue
-                t1 = time.clock()
-                urls = urls + self.parse_from_request(r)
-                finish_url.add(r.url)
-            urls = [url for url in urls if url not in finish_url]
-            print("预计平均每分钟 %f 个页面"%(60*len(finish_url)/(time.clock()-t0)))
-            print("next!")
-            if len(urls) == 0:
-                break
+        try:
+            while True:
+                rs = (grequests.get(url, headers=headers, timeout=2)for url in urls)
+                response_list = grequests.imap(rs, exception_handler=self.exception_url_handler)
+                for r in response_list:
+                    if r is None:
+                        continue
+                    t1 = time.clock()
+                    urls = urls|set(self.parse_from_request(r))
+                    print(r.url)
+                    finish_urls.add(r.url)
+                urls = urls - finish_urls
+                print("预计平均每分钟 %f 个页面"%(60*len(finish_urls)/(time.clock()-t0)))
+                print("next!")
+                if len(urls) == 0:
+                    break
+        finally:
+            self.save_url(urls, finish_urls)
 
 if __name__ == "__main__":
     model_filename = u"/exmaple/house_template.xml"
